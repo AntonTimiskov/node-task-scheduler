@@ -1,0 +1,11 @@
+FROM antontimiskov/node-task-scheduler:1.0.0
+
+WORKDIR /scheduler
+
+RUN npm install .
+
+COPY ./tests /scheduler/tests
+
+WORKDIR /scheduler/tests/test
+
+CMD ["/scheduler/node_modules/mocha/bin/mocha", "*.mocha.js"]
