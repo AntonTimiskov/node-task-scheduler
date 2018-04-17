@@ -1,4 +1,4 @@
-FROM antontimiskov/node-task-scheduler:1.0.0
+FROM antontimiskov/node-task-scheduler:1.0.1
 
 WORKDIR /scheduler
 

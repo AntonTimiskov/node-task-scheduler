@@ -1,6 +1,6 @@
 {
   "name": "nodejs-task-scheduler",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Task Scheduler written in nodejs, based on later library",
   "main": "index.js",
   "repository": {
@@ -20,10 +20,10 @@
     "winston": "1.0.1",
     "express-winston": "0.2.12",
     "process": "0.10.1",
-    "extend": "3.0.1"
+    "extend": "3.0.1",
+    "swagger-node-express": "2.1.0"
   },
   "devDependencies": {
-    "swagger-node-express": "2.1.0",
     "mocha": "2.2.5",
     "sinon": "1.14.1"
   }
