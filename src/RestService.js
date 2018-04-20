@@ -45,13 +45,13 @@ module.exports.run = function (port, host) {
     
     swagger.addModels(models)
     .addGet(resources.getById)
-    .addGet(resources.getAll)
     .addPost(resources.addJob)
-    .addPost(resources.pauseJob)
-    .addPost(resources.resumeJob)
     .addPut(resources.updateOrAddJob)
     .addDelete(resources.deleteJob)
     .addDelete(resources.deleteJobs);
+    // .addGet(resources.getAll)
+    // .addPost(resources.pauseJob)
+    // .addPost(resources.resumeJob)
     
     
     swagger.configureSwaggerPaths("", api_docs_path, "");
