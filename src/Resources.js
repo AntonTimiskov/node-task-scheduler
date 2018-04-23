@@ -20,12 +20,38 @@ k8sClient = function () {
   return client;
 };
 
-cronJob = function (jobName, job) {  
+jobNameStructure = function (jobName) {
+  const uuid = require('node-uuid').v4;
+  var _guid = uuid();
+  var _tenant = jobName.split('-tasks-')[0].split('dmp-')[1];
+  return {
+    cronJobName: _tenant.split('-')[0] + "." + _guid,
+    taskId: jobName.split('-tasks-')[1],
+    tenant: _tenant
+  }
+}
+
+k8sCronJobTrigger = function(a) {
+  return a.split(' ')[0]+' '+a.split(' ')[1]+' '+a.split(' ')[2]+' '+a.split(' ')[3]+' '+a.split(' ')[4];
+}
+
+qsJobId = function(req) {
+  var _jobNameStructure = jobNameStructure(req.params.jobId);
+  return { qs: { labelSelector: 'taskId=' + _jobNameStructure.taskId + ', tenant=' + _jobNameStructure.tenant } }
+}
+
+cronJob = function (jobName, job) {
+
+  _jobNameStructure = jobNameStructure(jobName)
   return  {
     kind: "CronJob", 
     metadata: {
-      name: jobName
-    },
+      name: _jobNameStructure.cronJobName,
+      labels: {
+        taskId: _jobNameStructure.taskId,
+        tenant: _jobNameStructure.tenant
+      }
+    },    
     spec: {
       schedule: job.recur.triggers[0],
       jobTemplate: {
@@ -71,12 +97,18 @@ exports.getById = {
     ]
   },
   'action': function (req, res) {
-    client = k8sClient();
-    client.apis.batch.v2alpha1.namespaces('olega').cronjobs(req.params.jobId).get()
-    .then((job) => {
-        _job = JSON.stringify(job)
-        logger.info( '[k8sJob] get cronjob %s', _job );
-        res.send(JSON.stringify(_job));
+
+    k8sClient().apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs.get( qsJobId(req) )
+    .then((jobs) => {
+        if (!_.isEmpty(jobs)){
+          logger.info( '[k8sJob] get cronjob %j', _jobs );
+          var _job = JSON.stringify(jobs[0]);
+          logger.info( '[k8sJob] get cronjob %s', _job );
+          res.send(_job);
+        }
+        else {
+          swagger.errors.notFound('job', res);
+        }
     })
     .catch(err => {
         logger.error( '[k8sJob] get cronjob err %s', err );
@@ -115,10 +147,11 @@ exports.addJob = {
       logger.info("Call createJob %j", req.body);
       if (req.body.recur.start) req.body.recur.start = new Date(req.body.recur.start);
       if (req.body.recur.end) req.body.recur.end = new Date(req.body.recur.end);
-      var a = req.body.recur.triggers[0];
-      req.body.recur.triggers[0] = a.split(' ')[0]+' '+a.split(' ')[1]+' '+a.split(' ')[2]+' '+a.split(' ')[3]+' '+a.split(' ')[4];
+      req.body.recur.triggers[0] = k8sCronJobTrigger(req.body.recur.triggers[0]);
 
-      k8sClient().apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs.post({ body: cronJob(req.body.name, req.body) })
+      var client = k8sClient();
+
+      client.apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs.post({ body: cronJob(req.body.name, req.body) })
       .then((job) => {
           logger.info( '[k8sJob1] add cronjob 1 %s', job );
           res.status(201).send({ status: "OK" });
@@ -161,25 +194,34 @@ exports.updateOrAddJob = {
       logger.info("Call updateJob %j", req.body);
       if (req.body.recur.start) req.body.recur.start = new Date(req.body.recur.start);
       if (req.body.recur.end) req.body.recur.end = new Date(req.body.recur.end);
-      var a = req.body.recur.triggers[0];
-      req.body.recur.triggers[0] = a.split(' ')[0]+' '+a.split(' ')[1]+' '+a.split(' ')[2]+' '+a.split(' ')[3]+' '+a.split(' ')[4];
+      req.body.recur.triggers[0] = k8sCronJobTrigger(req.body.recur.triggers[0]);
 
-      k8sClient().apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs(req.params.jobId).put({ body: cronJob(req.params.jobId, req.body) })
-      .then((job) => {
-        logger.info( '[k8sJob1] update cronjob %s', job );
-        res.status(200).send({ status: "OK" });
-      })
-      .catch(err => {
-        logger.error( '[k8sJob] update cronjob err %s', err );
-        k8sClient().apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs.post({ body: cronJob(req.body.name, req.body) })
-        .then((job) => {
-            logger.info( '[k8sJob1] add cronjob %s', job );
-            res.status(201).send({ status: "OK" });
-        })
-        .catch(err => {
-            logger.error( '[k8sJob] add cronjob err %s', err );
-            res.status(400).send("Is not possible job create");
-        });          
+      var client = k8sClient();
+
+      client.apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs.get( qsJobId(req) )
+      .then((jobs) => {
+        if (!_.isEmpty(jobs)){
+          _job = JSON.stringify(jobs[0])
+          logger.info( '[k8sJob] get cronjob %s', _job );
+          res.send(_job);
+          client.apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs( jobNameStructure(req.params.jobId) ).put({ body: cronJob(req.params.jobId, req.body) })
+          .then((job) => {
+            logger.info( '[k8sJob1] update cronjob %s', job );
+            res.status(200).send({ status: "OK" });
+          })
+          .catch(err => {
+            logger.error( '[k8sJob] update cronjob err %s', err );
+            client.apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs.post({ body: cronJob(req.body.name, req.body) })
+            .then((job) => {
+                logger.info( '[k8sJob1] add cronjob %s', job );
+                res.status(201).send({ status: "OK" });
+            })
+            .catch(err => {
+                logger.error( '[k8sJob] add cronjob err %s', err );
+                res.status(400).send("Is not possible job create");
+            });          
+          });
+        }
       });
     }
   }
@@ -200,10 +242,11 @@ exports.deleteJob = {
     nickname : "deleteJob"
   },  
   'action': function (req, res) {
-    
+
+    var _jobNameStructure = jobNameStructure(req.params.jobId);
     client = k8sClient();
     // client.apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs(req.params.jobId).delete({qs:{ propagationPolicy: 'Foreground'}})
-    client.apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs(req.params.jobId).delete()
+    client.apis.batch.v2alpha1.namespaces( k8sNamespace(req.body) ).cronjobs( jobNameStructure(req.params.jobId) ).delete( qsJobId(req) )
     .then((job) => {
       logger.info( '[k8sJob] delete cronjob %s', job );
       res.status(200).send({ status: "OK" });

@@ -22,7 +22,8 @@
     "process": "0.10.1",
     "extend": "3.0.1",
     "swagger-node-express": "2.1.0",
-    "kubernetes-client": "^5.2.0"
+    "kubernetes-client": "^5.2.0",
+    "node-uuid": "1.4.3"
   },
   "devDependencies": {
     "mocha": "2.2.5",
