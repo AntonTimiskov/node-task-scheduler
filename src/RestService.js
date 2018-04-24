@@ -1,4 +1,4 @@
-﻿var express = require("express");
+var express = require("express");
 var bodyParser = require('body-parser');
 var _ = require("underscore");
 
@@ -48,8 +48,8 @@ module.exports.run = function (port, host) {
     .addPost(resources.addJob)
     .addPut(resources.updateOrAddJob)
     .addDelete(resources.deleteJob)
-    .addDelete(resources.deleteJobs);
-    // .addGet(resources.getAll)
+    .addDelete(resources.deleteJobs)
+    .addGet(resources.getAll);
     // .addPost(resources.pauseJob)
     // .addPost(resources.resumeJob)
     

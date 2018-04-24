@@ -1,4 +1,4 @@
-﻿var swagger = require("swagger-node-express");
+var swagger = require("swagger-node-express");
 var paramTypes = require("swagger-node-express/lib/paramTypes.js");
 var url = require("url");
 var _ = require("underscore");
@@ -17,6 +17,7 @@ function validateEnvironment( envs ){
     }
   })
 }
+
 
 if ( !validateEnvironment(['PRODUCT']) ){
   process.abort();
@@ -381,48 +382,48 @@ exports.deleteJobs = {
   }
 };
 
-// exports.getAll = {
-  // 'spec': {
-    // description : "Get list of jobs",  
-    // path : "/jobs",
-    // method: "GET",
-    // summary : "Fetch all jobs",
-    // notes : "Get list of jobs",
-    // type: "array",
-    // items: {
-      // $ref: "JobResponse"
-    // },
-    // nickname : "getJobs",
-    // produces : ["application/json"],
-    // responseMessages : [{ "code": 200 }]
-  // },
-  // 'action': function (req, res) {
-    // client = k8sClient();
-    // client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get
-    // .then((jobs) => {
-      // logger.info( '[k8sJob] get all cronjobs %s', jobs );
-      // var _res = [];
-      // jobs.body.items.forEach(function(_job) {
-        // var jobData = JSON.parse(_job.spec.jobTemplate.spec.template.spec.containers[0].env[0].value);
-        // _res.push(
-          // {
-            // name: jobData.name,
-            // tenant: _job.metadata.labels.tenant,
-            // taskId: _job.metadata.labels.taskId,
-            // request: jobData.request,
-            // nextStart: '',
-            // lastStart: '',
-            // recur: jobData.recur
-          // }
-        // );
-      // });
-      // res.send(JSON.stringify(_res));
-    // })
-    // .catch(err => {
-        // logger.error( '[k8sJob] get all cronjobs err %s', err );
-    // });
-  // }
-// };
+exports.getAll = {
+  'spec': {
+    description : "Get list of jobs",  
+    path : "/jobs",
+    method: "GET",
+    summary : "Fetch all jobs",
+    notes : "Get list of jobs",
+    type: "array",
+    items: {
+      $ref: "JobResponse"
+    },
+    nickname : "getJobs",
+    produces : ["application/json"],
+    responseMessages : [{ "code": 200 }]
+  },
+  'action': function (req, res) {
+    client = k8sClient();
+    client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get()
+    .then((jobs) => {
+      logger.info( '[k8sJob] get all cronjobs %s', jobs );
+      var _res = [];
+      jobs.body.items.forEach(function(_job) {
+        var jobData = JSON.parse(_job.spec.jobTemplate.spec.template.spec.containers[0].env[0].value);
+        _res.push(
+          {
+            name: jobData.name,
+            tenant: _job.metadata.labels.tenant,
+            taskId: _job.metadata.labels.taskId,
+            request: jobData.request,
+            nextStart: '',
+            lastStart: '',
+            recur: jobData.recur
+          }
+        );
+      });
+      res.send(JSON.stringify(_res));
+    })
+    .catch(err => {
+        logger.error( '[k8sJob] get all cronjobs err %s', err );
+    });
+  }
+};
 
 // exports.pauseJob = {
     // 'spec': {
