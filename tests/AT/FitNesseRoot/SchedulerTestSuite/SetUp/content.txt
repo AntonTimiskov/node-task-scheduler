@@ -22,8 +22,9 @@
 *!
 
 !*> Import fixtures
-|import    |
-|http_calls|
+
+|import            |
+|Scripts.http_calls|
 
 -!|script|!-RestTools-!|
 |set host url|${SERVICE_URL}|

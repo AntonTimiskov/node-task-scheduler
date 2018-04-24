@@ -7,9 +7,9 @@
 !define SLIM_POOL_SIZE {29}
 !define COMMAND_PATTERN {python -m waferslim.server -i 0.0.0.0 --syspath %p -v  }
 
-!define root_path {./}
-!path ${root_path}/fixtures
 
+!define root_path {./}
+!path /FitNesseRoot/
 *!
 
 !contents -R2 -g -p -f -h
