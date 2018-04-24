@@ -1,6 +1,6 @@
 *.zip
 *.jar
-fixtures
+fixtures/__pycache__
 FitNesseRoot/RecentChanges
 FitNesseRoot/ErrorLogs
 FitNesseRoot/files
