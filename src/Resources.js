@@ -5,6 +5,7 @@ var _ = require("underscore");
 var models = require('./models.js');
 var logger = require("./Logger.js");
 
+
 function validateEnvironment( envs ){
   
   return _.every( envs, function(env){
@@ -18,12 +19,13 @@ function validateEnvironment( envs ){
   })
 }
 
-
-if ( !validateEnvironment(['PRODUCT']) ){
+if ( !validateEnvironment(['PRODUCT', 'EXECUTOR_IMAGE']) ){
   process.abort();
 }
 
-namespace = process.env['PRODUCT'];
+var namespace = process.env['PRODUCT'];
+var executor_image = process.env['EXECUTOR_IMAGE'];
+
 
 function IsRecurValid(recur) {
   return typeof recur !== 'undefined' &&
@@ -31,6 +33,7 @@ function IsRecurValid(recur) {
     recur.triggers.length > 0 &&
     recur.triggers[0];
 }
+
 
 k8sClient = function () {
   const Client = require('kubernetes-client').Client;
@@ -78,7 +81,7 @@ cronJob = function (_jobNameStructure, job) {
             spec: {
               containers: [{
                 name: "executor",
-                image: "dmpclusterdevwestus2registry.azurecr.io/dmp-executor:2.0.122.3-pt-scheduler-01",
+                image: executor_image,
                 args: ["node", "index.js"],
                 env: [{
                   name:"JOB", 
@@ -94,24 +97,6 @@ cronJob = function (_jobNameStructure, job) {
   }
 }  
 
-function validateEnvironment( envs ){
-  
-  return _.every( envs, function(env){
-    if( !process.env[ env ] ){
-      console.error( `Require ENV variable ${env}` );
-      return false;
-    } else {
-      console.log( ` - ${env}: ${process.env[ env ]}` );
-      return true;
-    }
-  })
-}
-
-if ( !validateEnvironment(['PRODUCT']) ){
-  process.abort();
-}
-
-namespace = process.env['PRODUCT'];
 
 exports.getById = {
   'spec': {
