@@ -75,6 +75,8 @@ cronJob = function (_jobNameStructure, job) {
     },    
     spec: {
       schedule: job.recur.triggers[0],
+      successfulJobsHistoryLimit: 1
+      failedJobsHistoryLimit: 1,
       jobTemplate: {
         spec: {
           template: {
