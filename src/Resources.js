@@ -5,9 +5,8 @@ var _ = require("underscore");
 var models = require('./models.js');
 var logger = require("./Logger.js");
 
-
 function validateEnvironment( envs ){
-  
+
   return _.every( envs, function(env){
     if( !process.env[ env ] ){
       console.error( `Require ENV variable ${env}` );
@@ -26,14 +25,12 @@ if ( !validateEnvironment(['PRODUCT', 'EXECUTOR_IMAGE']) ){
 var namespace = process.env['PRODUCT'];
 var executor_image = process.env['EXECUTOR_IMAGE'];
 
-
 function IsRecurValid(recur) {
   return typeof recur !== 'undefined' &&
     Object.prototype.toString.call(recur.triggers) === '[object Array]' &&
     recur.triggers.length > 0 &&
     recur.triggers[0];
 }
-
 
 k8sClient = function () {
   const Client = require('kubernetes-client').Client;
@@ -42,13 +39,13 @@ k8sClient = function () {
   return client;
 };
 
-jobNameStructure = function (jobName) {
+jobNameStructure = function (metadata) {
   const uuid = require('node-uuid').v4;
   var _guid = uuid();
-  var _tenant = jobName.split('-tasks-')[0].split('dmp-')[1];
+  var _tenant = metadata.tenant;
   return {
     cronJobName: _tenant.split('-')[0] + "." + _guid,
-    taskId: jobName.split('-tasks-')[1],
+    taskId: metadata.taskId,
     tenant: _tenant
   }
 }
@@ -57,9 +54,8 @@ k8sCronJobTrigger = function(a) {
   return a.split(' ')[0]+' '+a.split(' ')[1]+' '+a.split(' ')[2]+' '+a.split(' ')[3]+' '+a.split(' ')[4];
 }
 
-qsJobId = function(jobId) {
-  var _jobNameStructure = jobNameStructure(jobId);
-  return { qs: { labelSelector: 'taskId=' + _jobNameStructure.taskId + ', tenant=' + _jobNameStructure.tenant } }
+qsJobId = function(metadata) {
+  return { qs: { labelSelector: 'taskId=' + metadata.taskId + ', tenant=' + metadata.tenant } }
 }
 
 cronJob = function (_jobNameStructure, job) {
@@ -118,7 +114,7 @@ exports.getById = {
   },
   'action': function (req, res) {
     
-    k8sClient().apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get( qsJobId(req.params.jobId) )
+    k8sClient().apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get( qsJobId(req.body.metadata) )
     .then((jobs) => {
         var items = jobs.body.items;
         if (!_.isEmpty(items) && items.length === 1){
@@ -178,9 +174,9 @@ exports.addJob = {
       if (req.body.recur.end) req.body.recur.end = new Date(req.body.recur.end);
       req.body.recur.triggers[0] = k8sCronJobTrigger(req.body.recur.triggers[0]);
 
-      var _jobNameStructure = jobNameStructure(req.body.name);
+      var _jobNameStructure = jobNameStructure(req.body.metadata);
       var client = k8sClient();
-      client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get( qsJobId(req.body.name) )
+      client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get( qsJobId(req.body.metadata) )
       .then((jobs) => {
         var items = jobs.body.items;
         logger.info( '[k8sJob] get cronjob %j', items );
@@ -242,15 +238,15 @@ exports.updateOrAddJob = {
       req.body.recur.triggers[0] = k8sCronJobTrigger(req.body.recur.triggers[0]);
 
       var client = k8sClient();
-      var _jobNameStructureNew = jobNameStructure(req.body.name);
-      client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get( qsJobId(req.params.jobId) )
+      var _jobNameStructureNew = jobNameStructure(req.body.metadata);
+      client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get( qsJobId(req.params.metadata) )
       .then((jobs) => {
         var items = jobs.body.items;
         logger.info( '[k8sJob] get cronjob %j', items );
         if (!_.isEmpty(items) && items.length === 1){
           var _job = items[0];
           logger.info( '[k8sJob] get cronjob %s', JSON.stringify(_job) );
-          var _jobNameStructure = jobNameStructure(req.body.name);
+          var _jobNameStructure = jobNameStructure(req.body.metadata);
           _jobNameStructure.cronJobName = _job.metadata.name;
           client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs( _job.metadata.name ).put({ body: cronJob(_jobNameStructure, req.body) })
           .then((job) => {
@@ -314,7 +310,7 @@ exports.deleteJob = {
   },  
   'action': function (req, res) {
     client = k8sClient();
-    client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get( qsJobId(req.params.jobId) )
+    client.apis.batch.v2alpha1.namespaces( namespace ).cronjobs.get( qsJobId(req.body.metadata) )
     .then((jobs) => {
         var items = jobs.body.items;
         logger.info( '[k8sJob] get cronjob %j', items );

@@ -1,6 +1,6 @@
 {
   "name": "nodejs-task-scheduler",
-  "version": "1.0.5-k8s",
+  "version": "1.0.6-k8s",
   "description": "Task Scheduler written in nodejs, based on later library",
   "main": "index.js",
   "repository": {
