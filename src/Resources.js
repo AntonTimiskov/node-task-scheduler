@@ -48,7 +48,7 @@ jobNameStructure = function (jobName) {
   var _tenant = jobName.split('-tasks-')[0].split('dmp-')[1];
   return {
     cronJobName: _tenant.split('-')[0] + "." + _guid,
-    taskId: jobName.split('-tasks-')[1],
+    taskId: "A_" + jobName.split('-tasks-')[1] + "_A",
     tenant: _tenant
   }
 }
